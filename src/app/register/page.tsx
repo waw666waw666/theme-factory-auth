@@ -59,18 +59,10 @@ export default function RegisterPage() {
         return;
       }
 
-      // 显示验证码（开发模式或邮件发送失败时）
-      if (data.devCode) {
-        console.log("邮箱验证码:", data.devCode);
-        const msg = data.warning 
-          ? `验证码: ${data.devCode} (邮件未发送: ${data.warning})`
-          : `验证码: ${data.devCode}`;
-        setError(msg);
-      } else if (data.message) {
-        setError(data.message);
-      }
+      // 显示成功消息
+      setError(data.message || "验证码已发送到您的邮箱");
 
-      setEmailCodeCountdown(60); // 60秒倒计时
+      setEmailCodeCountdown(60);
     } catch {
       setError("网络错误，请重试");
     } finally {
