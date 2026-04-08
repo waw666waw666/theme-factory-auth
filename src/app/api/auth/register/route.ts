@@ -5,6 +5,14 @@ import { verifyEmailCode } from "@/app/api/email-code/route";
 
 export async function POST(request: Request) {
   try {
+    // 检查Supabase是否配置
+    if (!supabase) {
+      return NextResponse.json(
+        { error: "数据库未配置，注册功能暂不可用" },
+        { status: 503 }
+      );
+    }
+
     const { name, email, password, emailCode } = await request.json();
 
     // 验证必填字段

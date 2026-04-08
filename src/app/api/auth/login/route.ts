@@ -4,6 +4,14 @@ import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
+    // 检查Supabase是否配置
+    if (!supabase) {
+      return NextResponse.json(
+        { error: "数据库未配置，登录功能暂不可用" },
+        { status: 503 }
+      );
+    }
+
     const { email, password } = await request.json();
 
     if (!email || !password) {
