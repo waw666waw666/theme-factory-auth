@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
+import { verifyCaptcha } from "@/app/api/captcha/route";
+import { verifyEmailCode } from "@/app/api/email-code/route";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password, captchaId, captchaCode, emailCode } =
+      await request.json();
 
+    // 验证必填字段
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: "请填写所有必填字段" },
@@ -13,6 +17,39 @@ export async function POST(request: Request) {
       );
     }
 
+    // 验证图形验证码
+    if (!captchaId || !captchaCode) {
+      return NextResponse.json(
+        { error: "请输入图形验证码" },
+        { status: 400 }
+      );
+    }
+
+    const isCaptchaValid = verifyCaptcha(captchaId, captchaCode);
+    if (!isCaptchaValid) {
+      return NextResponse.json(
+        { error: "图形验证码错误或已过期" },
+        { status: 400 }
+      );
+    }
+
+    // 验证邮箱验证码
+    if (!emailCode) {
+      return NextResponse.json(
+        { error: "请输入邮箱验证码" },
+        { status: 400 }
+      );
+    }
+
+    const isEmailCodeValid = verifyEmailCode(email, emailCode);
+    if (!isEmailCodeValid) {
+      return NextResponse.json(
+        { error: "邮箱验证码错误或已过期" },
+        { status: 400 }
+      );
+    }
+
+    // 验证密码长度
     if (password.length < 6) {
       return NextResponse.json(
         { error: "密码至少需要 6 个字符" },
@@ -59,7 +96,9 @@ export async function POST(request: Request) {
     }
 
     // 生成 token
-    const token = Buffer.from(`${newUser.email}:${Date.now()}`).toString("base64");
+    const token = Buffer.from(`${newUser.email}:${Date.now()}`).toString(
+      "base64"
+    );
 
     const response = NextResponse.json({
       success: true,
@@ -77,9 +116,6 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error("注册错误:", error);
-    return NextResponse.json(
-      { error: "服务器错误" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "服务器错误" }, { status: 500 });
   }
 }

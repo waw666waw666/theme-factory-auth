@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
@@ -9,14 +9,90 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [captchaCode, setCaptchaCode] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [captchaSvg, setCaptchaSvg] = useState("");
+  const [captchaId, setCaptchaId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingEmailCode, setIsSendingEmailCode] = useState(false);
+  const [emailCodeCountdown, setEmailCodeCountdown] = useState(0);
   const [error, setError] = useState("");
+
+  // 获取图形验证码
+  const fetchCaptcha = async () => {
+    try {
+      const res = await fetch("/api/captcha");
+      const data = await res.json();
+      if (data.success) {
+        setCaptchaSvg(data.svg);
+        setCaptchaId(data.captchaId);
+        setCaptchaCode("");
+      }
+    } catch (error) {
+      console.error("获取验证码失败:", error);
+    }
+  };
+
+  // 初始加载验证码
+  useEffect(() => {
+    fetchCaptcha();
+  }, []);
+
+  // 邮箱验证码倒计时
+  useEffect(() => {
+    if (emailCodeCountdown > 0) {
+      const timer = setTimeout(() => {
+        setEmailCodeCountdown(emailCodeCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [emailCodeCountdown]);
+
+  // 发送邮箱验证码
+  const sendEmailCode = async () => {
+    if (!email) {
+      setError("请先输入邮箱地址");
+      return;
+    }
+
+    setIsSendingEmailCode(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/email-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "发送失败");
+        setIsSendingEmailCode(false);
+        return;
+      }
+
+      // 开发模式：显示验证码
+      if (data.devCode) {
+        console.log("邮箱验证码:", data.devCode);
+        setError(`开发模式：验证码已打印到控制台 - ${data.devCode}`);
+      }
+
+      setEmailCodeCountdown(60); // 60秒倒计时
+    } catch {
+      setError("网络错误，请重试");
+    } finally {
+      setIsSendingEmailCode(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
+    // 验证密码
     if (password !== confirmPassword) {
       setError("两次密码输入不一致");
       setIsLoading(false);
@@ -29,17 +105,40 @@ export default function RegisterPage() {
       return;
     }
 
+    // 验证图形验证码
+    if (!captchaCode) {
+      setError("请输入图形验证码");
+      setIsLoading(false);
+      return;
+    }
+
+    // 验证邮箱验证码
+    if (!emailCode) {
+      setError("请输入邮箱验证码");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          captchaId,
+          captchaCode,
+          emailCode,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
         setError(data.error || "注册失败");
+        // 刷新验证码
+        fetchCaptcha();
         setIsLoading(false);
         return;
       }
@@ -96,6 +195,34 @@ export default function RegisterPage() {
               />
             </div>
 
+            {/* 邮箱验证码 */}
+            <div className="form-group">
+              <label htmlFor="emailCode">邮箱验证码</label>
+              <div className="captcha-row">
+                <input
+                  id="emailCode"
+                  type="text"
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value)}
+                  placeholder="6位数字验证码"
+                  required
+                  maxLength={6}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={sendEmailCode}
+                  disabled={isSendingEmailCode || emailCodeCountdown > 0}
+                  style={{ marginLeft: "10px", whiteSpace: "nowrap" }}
+                >
+                  {emailCodeCountdown > 0
+                    ? `${emailCodeCountdown}秒后重试`
+                    : "获取验证码"}
+                </button>
+              </div>
+            </div>
+
             <div className="form-group">
               <label htmlFor="password">密码</label>
               <input
@@ -120,6 +247,38 @@ export default function RegisterPage() {
                 required
                 autoComplete="new-password"
               />
+            </div>
+
+            {/* 图形验证码 */}
+            <div className="form-group">
+              <label htmlFor="captcha">图形验证码</label>
+              <div className="captcha-row">
+                <input
+                  id="captcha"
+                  type="text"
+                  value={captchaCode}
+                  onChange={(e) => setCaptchaCode(e.target.value)}
+                  placeholder="输入验证码"
+                  required
+                  maxLength={4}
+                  style={{ flex: 1 }}
+                />
+                {captchaSvg && (
+                  <div
+                    className="captcha-image"
+                    onClick={fetchCaptcha}
+                    style={{
+                      marginLeft: "10px",
+                      cursor: "pointer",
+                      background: "#fff",
+                      borderRadius: "6px",
+                      padding: "2px",
+                    }}
+                    dangerouslySetInnerHTML={{ __html: captchaSvg }}
+                    title="点击刷新验证码"
+                  />
+                )}
+              </div>
             </div>
 
             <button type="submit" className="btn-primary" disabled={isLoading}>
