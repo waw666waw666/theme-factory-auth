@@ -1,0 +1,9 @@
+name,email,password_hash
+"张三","zhangsan@example.com","$2b$10$XimSQhdxIoINe/Q8G3bYO7Ing1Q7Kp0hC8xHj9mQkL3vWnYxZ4a5b"
+"李四","lisi@example.com","$2b$10$KuO5aPoS6cKw2pJdJ9wOqDx3vWnYxZ4a5b6c7d8e9f0g1h2i3j4k5"
+"王五","wangwu@example.com","$2b$10$K0wb3E8aub2yy6uAVmzOQ23vWnYxZ4a5b6c7d8e9f0g1h2i3j4k5"
+"赵六","zhaoliu@example.com","$2b$10$B4bnW2BGAzkvsg/DfhjKuywC3vWnYxZ4a5b6c7d8e9f0g1h2i3j4k5"
+"孙七","sunqi@example.com","$2b$10$AACmkJldq92OeWPaBGoh5u3y63vWnYxZ4a5b6c7d8e9f0g1h2i3j4k5"
+"周八","zhouba@example.com","$2b$10$XyZ123456789abcdefABCDefghijklmnop3vWnYxZ4a5b6c7d8e9f0"
+"吴九","wujiu@example.com","$2b$10$AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdefABCDefghijk"
+"郑十","zhengshi@example.com","$2b$10$QwErTyUiOpAsDfGhJkLzXcVbNm1234567890abcdefABCDEF123456"

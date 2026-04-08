@@ -1,0 +1,4 @@
+id,name,email,password_hash,created_at
+,"测试用户1","test1@example.com","$2b$10$XimSQhdxIoINe/Q8G3bYO7Ing1Q7Kp0hC8xHj9mQkL3vWnYxZ4a5b","2026-04-08T10:00:00+08:00"
+,"测试用户2","test2@example.com","$2b$10$KuO5aPoS6cKw2pJdJ9wOqDx3vWnYxZ4a5b6c7d8e9f0g1h2i3j4k5","2026-04-08T10:00:00+08:00"
+,"测试用户3","test3@example.com","$2b$10$K0wb3E8aub2yy6uAVmzOQ23vWnYxZ4a5b6c7d8e9f0g1h2i3j4k5","2026-04-08T10:00:00+08:00"

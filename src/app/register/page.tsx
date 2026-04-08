@@ -59,10 +59,15 @@ export default function RegisterPage() {
         return;
       }
 
-      // 开发模式：显示验证码
+      // 显示验证码（开发模式或邮件发送失败时）
       if (data.devCode) {
         console.log("邮箱验证码:", data.devCode);
-        setError(`开发模式：验证码已打印到控制台 - ${data.devCode}`);
+        const msg = data.warning 
+          ? `验证码: ${data.devCode} (邮件未发送: ${data.warning})`
+          : `验证码: ${data.devCode}`;
+        setError(msg);
+      } else if (data.message) {
+        setError(data.message);
       }
 
       setEmailCodeCountdown(60); // 60秒倒计时
