@@ -31,21 +31,38 @@ function generateCode(): string {
 }
 
 // 发送验证码邮件
-async function sendEmail(to: string, code: string): Promise<boolean> {
+async function sendEmail(to: string, code: string): Promise<{ success: boolean; error?: string }> {
   try {
+    // 检查环境变量
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = process.env.SMTP_PORT;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    
+    console.log("[Email] SMTP Config:", { 
+      host: smtpHost, 
+      port: smtpPort, 
+      user: smtpUser ? "***" : undefined,
+      pass: smtpPass ? "***" : undefined
+    });
+    
+    if (!smtpUser || !smtpPass) {
+      return { success: false, error: "SMTP配置缺失" };
+    }
+    
     const nm = await getNodemailer();
     const transporter = nm.createTransport({
-      host: process.env.SMTP_HOST || "smtp.qq.com",
-      port: parseInt(process.env.SMTP_PORT || "465"),
+      host: smtpHost || "smtp.qq.com",
+      port: parseInt(smtpPort || "465"),
       secure: true, // QQ邮箱使用SSL
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: smtpUser,
+        pass: smtpPass,
       },
     });
 
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || `"Theme Factory" <${process.env.SMTP_USER}>`,
+      from: process.env.SMTP_FROM || `"Theme Factory" <${smtpUser}>`,
       to,
       subject: "Theme Factory - 邮箱验证码",
       html: `
@@ -61,10 +78,10 @@ async function sendEmail(to: string, code: string): Promise<boolean> {
         </div>
       `,
     });
-    return true;
-  } catch (error) {
-    console.error("Email send error:", error);
-    return false;
+    return { success: true };
+  } catch (error: any) {
+    console.error("[Email] Send error:", error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -72,6 +89,8 @@ async function sendEmail(to: string, code: string): Promise<boolean> {
 export async function POST(req: NextRequest) {
   try {
     const { email } = await req.json();
+    
+    console.log("[Email] Request received for:", email);
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "邮箱格式不正确" }, { status: 400 });
@@ -88,6 +107,7 @@ export async function POST(req: NextRequest) {
 
     // 生成验证码
     const code = generateCode();
+    console.log("[Email] Generated code:", code);
 
     // 存储验证码（10分钟有效期）
     emailCodeStore.set(email, {
@@ -96,33 +116,27 @@ export async function POST(req: NextRequest) {
       attempts: 0,
     });
 
-    // 发送邮件（如果配置了SMTP）
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      const sent = await sendEmail(email, code);
-      if (!sent) {
-        return NextResponse.json(
-          { error: "邮件发送失败，请检查邮箱配置" },
-          { status: 500 }
-        );
-      }
-    } else {
-      // 开发环境：直接返回验证码（仅用于测试）
-      console.log(`[DEV] Email code for ${email}: ${code}`);
-      return NextResponse.json({
-        success: true,
-        message: "开发模式：验证码已打印到控制台",
-        devCode: code, // 仅开发环境返回
-      });
+    // 发送邮件
+    const result = await sendEmail(email, code);
+    
+    if (!result.success) {
+      console.error("[Email] Failed to send:", result.error);
+      return NextResponse.json(
+        { error: `邮件发送失败: ${result.error}` },
+        { status: 500 }
+      );
     }
+
+    console.log("[Email] Sent successfully to:", email);
 
     return NextResponse.json({
       success: true,
       message: "验证码已发送到您的邮箱",
     });
-  } catch (error) {
-    console.error("Email code error:", error);
+  } catch (error: any) {
+    console.error("[Email] API error:", error);
     return NextResponse.json(
-      { error: "验证码发送失败" },
+      { error: `验证码发送失败: ${error.message}` },
       { status: 500 }
     );
   }
