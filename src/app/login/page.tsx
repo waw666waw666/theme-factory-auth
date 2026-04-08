@@ -1,100 +1,97 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const router = useRouter()
+  const [form, setForm] = useState({ email: '', password: '' })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+    e.preventDefault()
+    setError('')
+    setLoading(true)
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
 
-      const data = await res.json();
-
+      const data = await res.json()
       if (!res.ok) {
-        setError(data.error || "登录失败");
-        setIsLoading(false);
-        return;
+        setError(data.error || '登录失败')
+        return
       }
 
-      localStorage.setItem("token", data.token);
-      router.push("/dashboard");
+      router.push('/dashboard')
     } catch {
-      setError("网络错误，请重试");
-      setIsLoading(false);
+      setError('网络错误')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        <div className="login-card">
-          <div className="login-header">
-            <div className="logo">
-              <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
-                <rect width="100" height="100" rx="20" fill="#5e6ad2"/>
-                <path d="M30 70V30L50 50L70 30V70" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <h1>登录</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+        <h1 className="text-2xl font-bold text-center mb-6">登录</h1>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              邮箱
+            </label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="your@email.com"
+              required
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="login-form">
-            {error && <div className="error-message">{error}</div>}
-
-            <div className="form-group">
-              <label htmlFor="email">邮箱地址</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="123456@qq.com"
-                required
-                autoComplete="email"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="password">密码</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="输入密码"
-                required
-                autoComplete="current-password"
-              />
-            </div>
-
-            <button type="submit" className="btn-primary" disabled={isLoading}>
-              {isLoading ? (
-                <span className="loading-spinner"></span>
-              ) : (
-                "登录"
-              )}
-            </button>
-          </form>
-
-          <div className="login-footer">
-            <p>没有账户? <a href="/register">立即注册</a></p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              密码
+            </label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="请输入密码"
+              required
+            />
           </div>
-        </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? '登录中...' : '登录'}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-sm text-gray-600">
+          还没有账户？{' '}
+          <Link href="/register" className="text-blue-600 hover:underline">
+            立即注册
+          </Link>
+        </p>
       </div>
     </div>
-  );
+  )
 }

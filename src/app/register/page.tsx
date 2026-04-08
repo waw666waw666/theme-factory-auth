@@ -1,249 +1,213 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function RegisterPage() {
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const [qqNumber, setQqNumber] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [emailCode, setEmailCode] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSendingEmailCode, setIsSendingEmailCode] = useState(false);
-  const [emailCodeCountdown, setEmailCodeCountdown] = useState(0);
-  const [error, setError] = useState("");
+  const router = useRouter()
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    code: '',
+  })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [sendingCode, setSendingCode] = useState(false)
+  const [countdown, setCountdown] = useState(0)
 
-  // 完整的邮箱地址
-  const email = qqNumber ? `${qqNumber}@qq.com` : "";
-
-  // 邮箱验证码倒计时
-  useEffect(() => {
-    if (emailCodeCountdown > 0) {
-      const timer = setTimeout(() => {
-        setEmailCodeCountdown(emailCodeCountdown - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [emailCodeCountdown]);
-
-  // 发送邮箱验证码
-  const sendEmailCode = async () => {
-    if (!qqNumber) {
-      setError("请先输入QQ号");
-      return;
+  const sendCode = async () => {
+    if (!form.email) {
+      setError('请先输入邮箱')
+      return
     }
 
-    // 验证QQ号格式
-    if (!/^\d{5,11}$/.test(qqNumber)) {
-      setError("请输入正确的QQ号（5-11位数字）");
-      return;
-    }
-
-    setIsSendingEmailCode(true);
-    setError("");
+    setSendingCode(true)
+    setError('')
 
     try {
-      const res = await fetch("/api/email-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      const res = await fetch('/api/email-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email }),
+      })
 
-      const data = await res.json();
-
+      const data = await res.json()
       if (!res.ok) {
-        setError(data.error || "发送失败");
-        setIsSendingEmailCode(false);
-        return;
+        setError(data.error || '发送失败')
+        return
       }
 
-      // 显示成功消息
-      setError(data.message || "验证码已发送到您的邮箱");
-
-      setEmailCodeCountdown(60);
+      setCountdown(60)
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
     } catch {
-      setError("网络错误，请重试");
+      setError('网络错误')
     } finally {
-      setIsSendingEmailCode(false);
+      setSendingCode(false)
     }
-  };
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+    e.preventDefault()
+    setError('')
 
-    // 验证QQ号
-    if (!qqNumber || !/^\d{5,11}$/.test(qqNumber)) {
-      setError("请输入正确的QQ号");
-      setIsLoading(false);
-      return;
+    if (form.password !== form.confirmPassword) {
+      setError('两次密码不一致')
+      return
     }
 
-    // 验证密码
-    if (password !== confirmPassword) {
-      setError("两次密码输入不一致");
-      setIsLoading(false);
-      return;
+    if (form.password.length < 6) {
+      setError('密码至少需要6位')
+      return
     }
 
-    if (password.length < 6) {
-      setError("密码至少需要 6 个字符");
-      setIsLoading(false);
-      return;
-    }
-
-    // 验证邮箱验证码
-    if (!emailCode) {
-      setError("请输入邮箱验证码");
-      setIsLoading(false);
-      return;
-    }
+    setLoading(true)
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
-          email,
-          password,
-          emailCode,
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          code: form.code,
         }),
-      });
+      })
 
-      const data = await res.json();
-
+      const data = await res.json()
       if (!res.ok) {
-        setError(data.error || "注册失败");
-        setIsLoading(false);
-        return;
+        setError(data.error || '注册失败')
+        return
       }
 
-      localStorage.setItem("token", data.token);
-      router.push("/dashboard");
+      router.push('/dashboard')
     } catch {
-      setError("网络错误，请重试");
-      setIsLoading(false);
+      setError('网络错误')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        <div className="login-card">
-          <div className="login-header">
-            <div className="logo">
-              <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
-                <rect width="100" height="100" rx="20" fill="#5e6ad2"/>
-                <path d="M30 70V30L50 50L70 30V70" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <h1>创建账户</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+        <h1 className="text-2xl font-bold text-center mb-6">注册</h1>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              昵称
+            </label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="请输入昵称"
+              required
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="login-form">
-            {error && <div className="error-message">{error}</div>}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              邮箱
+            </label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="your@email.com"
+              required
+            />
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="name">昵称</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              验证码
+            </label>
+            <div className="flex gap-2">
               <input
-                id="name"
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="您的昵称"
+                value={form.code}
+                onChange={(e) => setForm({ ...form, code: e.target.value })}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="6位验证码"
+                maxLength={6}
                 required
-                autoComplete="name"
               />
+              <button
+                type="button"
+                onClick={sendCode}
+                disabled={sendingCode || countdown > 0}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 whitespace-nowrap"
+              >
+                {countdown > 0 ? `${countdown}s` : sendingCode ? '发送中...' : '获取验证码'}
+              </button>
             </div>
-
-            {/* QQ号输入 */}
-            <div className="form-group">
-              <label htmlFor="qqNumber">QQ号</label>
-              <div className="qq-input-row">
-                <input
-                  id="qqNumber"
-                  type="text"
-                  value={qqNumber}
-                  onChange={(e) => setQqNumber(e.target.value.replace(/\D/g, ''))}
-                  placeholder="123456"
-                  required
-                  maxLength={11}
-                  autoComplete="off"
-                />
-                <span className="qq-suffix">@qq.com</span>
-              </div>
-            </div>
-
-            {/* 邮箱验证码 */}
-            <div className="form-group">
-              <label htmlFor="emailCode">邮箱验证码</label>
-              <div className="captcha-row">
-                <input
-                  id="emailCode"
-                  type="text"
-                  value={emailCode}
-                  onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="6位数字"
-                  required
-                  maxLength={6}
-                />
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={sendEmailCode}
-                  disabled={isSendingEmailCode || emailCodeCountdown > 0}
-                >
-                  {emailCodeCountdown > 0
-                    ? `${emailCodeCountdown}秒`
-                    : "获取验证码"}
-                </button>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="password">密码</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="至少6位字符"
-                required
-                autoComplete="new-password"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="confirmPassword">确认密码</label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="再次输入密码"
-                required
-                autoComplete="new-password"
-              />
-            </div>
-
-            <button type="submit" className="btn-primary" disabled={isLoading}>
-              {isLoading ? (
-                <span className="loading-spinner"></span>
-              ) : (
-                "注册"
-              )}
-            </button>
-          </form>
-
-          <div className="login-footer">
-            <p>已有账户? <a href="/login">立即登录</a></p>
           </div>
-        </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              密码
+            </label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="至少6位"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              确认密码
+            </label>
+            <input
+              type="password"
+              value={form.confirmPassword}
+              onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="再次输入密码"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? '注册中...' : '注册'}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-sm text-gray-600">
+          已有账户？{' '}
+          <Link href="/login" className="text-blue-600 hover:underline">
+            立即登录
+          </Link>
+        </p>
       </div>
     </div>
-  );
+  )
 }
