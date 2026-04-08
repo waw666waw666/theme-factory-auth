@@ -44,13 +44,12 @@ export default function LoginPage() {
         <div className="login-card">
           <div className="login-header">
             <div className="logo">
-              <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
+              <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
                 <rect width="100" height="100" rx="20" fill="#5e6ad2"/>
                 <path d="M30 70V30L50 50L70 30V70" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <h1>Theme Factory</h1>
-            <p>登录到您的账户</p>
+            <h1>登录</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="login-form">
@@ -63,7 +62,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
+                placeholder="123456@qq.com"
                 required
                 autoComplete="email"
               />

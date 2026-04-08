@@ -1,34 +1,16 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
-import { verifyCaptcha } from "@/app/api/captcha/route";
 import { verifyEmailCode } from "@/app/api/email-code/route";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password, captchaId, captchaCode, emailCode } =
-      await request.json();
+    const { name, email, password, emailCode } = await request.json();
 
     // 验证必填字段
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: "请填写所有必填字段" },
-        { status: 400 }
-      );
-    }
-
-    // 验证图形验证码
-    if (!captchaId || !captchaCode) {
-      return NextResponse.json(
-        { error: "请输入图形验证码" },
-        { status: 400 }
-      );
-    }
-
-    const isCaptchaValid = verifyCaptcha(captchaId, captchaCode);
-    if (!isCaptchaValid) {
-      return NextResponse.json(
-        { error: "图形验证码错误或已过期" },
         { status: 400 }
       );
     }

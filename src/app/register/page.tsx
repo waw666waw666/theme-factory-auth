@@ -6,37 +6,17 @@ import { useRouter } from "next/navigation";
 export default function RegisterPage() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [qqNumber, setQqNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [captchaCode, setCaptchaCode] = useState("");
   const [emailCode, setEmailCode] = useState("");
-  const [captchaSvg, setCaptchaSvg] = useState("");
-  const [captchaId, setCaptchaId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingEmailCode, setIsSendingEmailCode] = useState(false);
   const [emailCodeCountdown, setEmailCodeCountdown] = useState(0);
   const [error, setError] = useState("");
 
-  // 获取图形验证码
-  const fetchCaptcha = async () => {
-    try {
-      const res = await fetch("/api/captcha");
-      const data = await res.json();
-      if (data.success) {
-        setCaptchaSvg(data.svg);
-        setCaptchaId(data.captchaId);
-        setCaptchaCode("");
-      }
-    } catch (error) {
-      console.error("获取验证码失败:", error);
-    }
-  };
-
-  // 初始加载验证码
-  useEffect(() => {
-    fetchCaptcha();
-  }, []);
+  // 完整的邮箱地址
+  const email = qqNumber ? `${qqNumber}@qq.com` : "";
 
   // 邮箱验证码倒计时
   useEffect(() => {
@@ -50,8 +30,14 @@ export default function RegisterPage() {
 
   // 发送邮箱验证码
   const sendEmailCode = async () => {
-    if (!email) {
-      setError("请先输入邮箱地址");
+    if (!qqNumber) {
+      setError("请先输入QQ号");
+      return;
+    }
+
+    // 验证QQ号格式
+    if (!/^\d{5,11}$/.test(qqNumber)) {
+      setError("请输入正确的QQ号（5-11位数字）");
       return;
     }
 
@@ -92,6 +78,13 @@ export default function RegisterPage() {
     setIsLoading(true);
     setError("");
 
+    // 验证QQ号
+    if (!qqNumber || !/^\d{5,11}$/.test(qqNumber)) {
+      setError("请输入正确的QQ号");
+      setIsLoading(false);
+      return;
+    }
+
     // 验证密码
     if (password !== confirmPassword) {
       setError("两次密码输入不一致");
@@ -101,13 +94,6 @@ export default function RegisterPage() {
 
     if (password.length < 6) {
       setError("密码至少需要 6 个字符");
-      setIsLoading(false);
-      return;
-    }
-
-    // 验证图形验证码
-    if (!captchaCode) {
-      setError("请输入图形验证码");
       setIsLoading(false);
       return;
     }
@@ -127,8 +113,6 @@ export default function RegisterPage() {
           name,
           email,
           password,
-          captchaId,
-          captchaCode,
           emailCode,
         }),
       });
@@ -137,8 +121,6 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         setError(data.error || "注册失败");
-        // 刷新验证码
-        fetchCaptcha();
         setIsLoading(false);
         return;
       }
@@ -157,13 +139,12 @@ export default function RegisterPage() {
         <div className="login-card">
           <div className="login-header">
             <div className="logo">
-              <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
+              <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
                 <rect width="100" height="100" rx="20" fill="#5e6ad2"/>
                 <path d="M30 70V30L50 50L70 30V70" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             <h1>创建账户</h1>
-            <p>加入 Theme Factory</p>
           </div>
 
           <form onSubmit={handleSubmit} className="login-form">
@@ -182,17 +163,22 @@ export default function RegisterPage() {
               />
             </div>
 
+            {/* QQ号输入 */}
             <div className="form-group">
-              <label htmlFor="email">邮箱地址</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                required
-                autoComplete="email"
-              />
+              <label htmlFor="qqNumber">QQ号</label>
+              <div className="qq-input-row">
+                <input
+                  id="qqNumber"
+                  type="text"
+                  value={qqNumber}
+                  onChange={(e) => setQqNumber(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  required
+                  maxLength={11}
+                  autoComplete="off"
+                />
+                <span className="qq-suffix">@qq.com</span>
+              </div>
             </div>
 
             {/* 邮箱验证码 */}
@@ -203,21 +189,19 @@ export default function RegisterPage() {
                   id="emailCode"
                   type="text"
                   value={emailCode}
-                  onChange={(e) => setEmailCode(e.target.value)}
-                  placeholder="6位数字验证码"
+                  onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="6位数字"
                   required
                   maxLength={6}
-                  style={{ flex: 1 }}
                 />
                 <button
                   type="button"
                   className="btn-secondary"
                   onClick={sendEmailCode}
                   disabled={isSendingEmailCode || emailCodeCountdown > 0}
-                  style={{ marginLeft: "10px", whiteSpace: "nowrap" }}
                 >
                   {emailCodeCountdown > 0
-                    ? `${emailCodeCountdown}秒后重试`
+                    ? `${emailCodeCountdown}秒`
                     : "获取验证码"}
                 </button>
               </div>
@@ -230,7 +214,7 @@ export default function RegisterPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="至少 6 个字符"
+                placeholder="至少6位字符"
                 required
                 autoComplete="new-password"
               />
@@ -247,38 +231,6 @@ export default function RegisterPage() {
                 required
                 autoComplete="new-password"
               />
-            </div>
-
-            {/* 图形验证码 */}
-            <div className="form-group">
-              <label htmlFor="captcha">图形验证码</label>
-              <div className="captcha-row">
-                <input
-                  id="captcha"
-                  type="text"
-                  value={captchaCode}
-                  onChange={(e) => setCaptchaCode(e.target.value)}
-                  placeholder="输入验证码"
-                  required
-                  maxLength={4}
-                  style={{ flex: 1 }}
-                />
-                {captchaSvg && (
-                  <div
-                    className="captcha-image"
-                    onClick={fetchCaptcha}
-                    style={{
-                      marginLeft: "10px",
-                      cursor: "pointer",
-                      background: "#fff",
-                      borderRadius: "6px",
-                      padding: "2px",
-                    }}
-                    dangerouslySetInnerHTML={{ __html: captchaSvg }}
-                    title="点击刷新验证码"
-                  />
-                )}
-              </div>
             </div>
 
             <button type="submit" className="btn-primary" disabled={isLoading}>

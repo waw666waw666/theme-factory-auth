@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+
+// 动态导入 nodemailer
+let nodemailer: any;
+async function getNodemailer() {
+  if (!nodemailer) {
+    nodemailer = await import("nodemailer");
+  }
+  return nodemailer;
+}
 
 // 存储邮箱验证码
 const emailCodeStore = new Map<
@@ -24,21 +32,20 @@ function generateCode(): string {
 
 // 发送验证码邮件
 async function sendEmail(to: string, code: string): Promise<boolean> {
-  // 这里需要配置你的邮箱 SMTP
-  // 示例使用 QQ 邮箱，你需要替换为真实的邮箱配置
-  const transporter = nodemailer.createTransporter({
-    host: process.env.SMTP_HOST || "smtp.qq.com",
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER || "your-email@qq.com",
-      pass: process.env.SMTP_PASS || "your-auth-code",
-    },
-  });
-
   try {
+    const nm = await getNodemailer();
+    const transporter = nm.createTransport({
+      host: process.env.SMTP_HOST || "smtp.qq.com",
+      port: parseInt(process.env.SMTP_PORT || "465"),
+      secure: true, // QQ邮箱使用SSL
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
     await transporter.sendMail({
-      from: `"Theme Factory" <${process.env.SMTP_USER || "your-email@qq.com"}>`,
+      from: process.env.SMTP_FROM || `"Theme Factory" <${process.env.SMTP_USER}>`,
       to,
       subject: "Theme Factory - 邮箱验证码",
       html: `
